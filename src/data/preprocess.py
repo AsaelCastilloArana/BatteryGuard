@@ -13,7 +13,6 @@ def preprocess_data(input_path, output_path, model_dir):
     df = pd.read_csv(input_path)
     
     # 1. Seleccionamos las columnas de interés (SOH, Topografía, Clima y Target)
-    # Nota: Mapeamos las variables numéricas a las categorías de tu proyecto
     df_clean = pd.DataFrame()
     
     # SOH (Salud de la batería)
@@ -43,19 +42,21 @@ def preprocess_data(input_path, output_path, model_dir):
     # 4. Train / Test Split (80/20)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
     
-    # 5. Pipeline de Preprocesamiento (OneHot para categóricas, Scaler para numéricas)
+    # 5. Pipeline de Preprocesamiento (OneHot para categóricas)
     preprocessor = ColumnTransformer(
         transformers=[
             ('cat', OneHotEncoder(handle_unknown='ignore'), ['SOH', 'Topografia', 'Clima'])
         ])
     
-    # Guardar los transformadores
-    os.makedirs(model_dir, exist_ok=True)
-    joblib.dump(preprocessor, os.path.join(model_dir, 'preprocessor.joblib'))
-    
-    # Procesar y guardar
+    # --- AQUÍ ESTÁ LA CORRECCIÓN ---
+    # Procesar PRIMERO (para que el preprocesador aprenda)
     X_train_processed = preprocessor.fit_transform(X_train)
     X_test_processed = preprocessor.transform(X_test)
+
+    # Guardar los transformadores DESPUÉS de que ya aprendieron
+    os.makedirs(model_dir, exist_ok=True)
+    joblib.dump(preprocessor, os.path.join(model_dir, 'preprocessor.joblib'))
+    # --------------------------------
     
     # Guardar sets procesados
     os.makedirs(os.path.dirname(output_path), exist_ok=True)

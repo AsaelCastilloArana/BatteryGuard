@@ -9,7 +9,6 @@ from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
 from sklearn.metrics import classification_report, roc_auc_score, f1_score, confusion_matrix
 
-# Función auxiliar para graficar y guardar la matriz
 def plot_confusion_matrix(y_true, y_pred, model_name, save_dir):
     cm = confusion_matrix(y_true, y_pred)
     plt.figure(figsize=(6, 5))
@@ -20,7 +19,6 @@ def plot_confusion_matrix(y_true, y_pred, model_name, save_dir):
     plt.ylabel('Real')
     plt.xlabel('Predicho')
     
-    # Guardar imagen
     os.makedirs(save_dir, exist_ok=True)
     filepath = os.path.join(save_dir, f'matriz_confusion_{model_name}.png')
     plt.savefig(filepath, bbox_inches='tight', dpi=300)
@@ -34,9 +32,10 @@ def train_models(data_dir, model_dir, report_dir):
     y_train = pd.read_csv(os.path.join(data_dir, 'y_train.csv')).values.ravel()
     y_test = pd.read_csv(os.path.join(data_dir, 'y_test.csv')).values.ravel()
     
-    # --- MODELO 1: RANDOM FOREST ---
-    print("\n[INFO] Entrenando Modelo Baseline (Random Forest)...")
-    rf = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42)
+    # --- MODELO 1: RANDOM FOREST BALANCEADO ---
+    print("\n[INFO] Entrenando Modelo Baseline (Random Forest Balanceado)...")
+    # Usamos class_weight='balanced' para penalizar más los errores en la clase minoritaria
+    rf = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42, class_weight='balanced')
     rf.fit(X_train, y_train)
     rf_preds = rf.predict(X_test)
     
@@ -45,15 +44,19 @@ def train_models(data_dir, model_dir, report_dir):
     
     print(f"[RESULTADO RF] ROC-AUC: {rf_auc:.4f} | F1-Score: {rf_f1:.4f}")
     print("\n[REPORTE RF]")
-    print(classification_report(y_test, rf_preds))
+    print(classification_report(y_test, rf_preds, zero_division=0))
     
-    # Generar Matriz de Confusión para RF
     plot_confusion_matrix(y_test, rf_preds, "Random_Forest", report_dir)
     
-    # --- MODELO 2: XGBOOST ---
-    print("\n[INFO] Entrenando Modelo Alternativo (XGBoost)...")
+    # --- MODELO 2: XGBOOST BALANCEADO ---
+    print("\n[INFO] Entrenando Modelo Alternativo (XGBoost Balanceado)...")
+    # Calculamos el peso para XGBoost (proporción de clase 0 / clase 1)
+    ratio_desbalance = sum(y_train == 0) / sum(y_train == 1)
+    print(f"[INFO] Factor de balanceo calculado para XGBoost: {ratio_desbalance:.2f}")
+    
     xgb = XGBClassifier(n_estimators=300, learning_rate=0.05, max_depth=6, 
-                        subsample=0.8, eval_metric='logloss', random_state=42)
+                        subsample=0.8, eval_metric='logloss', random_state=42,
+                        scale_pos_weight=ratio_desbalance) # <-- Ajuste aquí
     xgb.fit(X_train, y_train)
     xgb_preds = xgb.predict(X_test)
     
@@ -62,9 +65,8 @@ def train_models(data_dir, model_dir, report_dir):
     
     print(f"[RESULTADO XGB] ROC-AUC: {xgb_auc:.4f} | F1-Score: {xgb_f1:.4f}")
     print("\n[REPORTE XGB]")
-    print(classification_report(y_test, xgb_preds))
+    print(classification_report(y_test, xgb_preds, zero_division=0))
     
-    # Generar Matriz de Confusión para XGBoost
     plot_confusion_matrix(y_test, xgb_preds, "XGBoost", report_dir)
     
     # --- SELECCIÓN DEL GANADOR ---
