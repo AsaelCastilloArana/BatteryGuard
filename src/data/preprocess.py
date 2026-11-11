@@ -59,8 +59,8 @@ def preprocess_data(input_path, output_path, model_dir):
     
     # Guardar sets procesados
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    pd.DataFrame(X_train_processed.toarray()).to_csv(os.path.join(os.path.dirname(output_path), 'X_train.csv'), index=False)
-    pd.DataFrame(X_test_processed.toarray()).to_csv(os.path.join(os.path.dirname(output_path), 'X_test.csv'), index=False)
+    pd.DataFrame(X_train_processed).to_csv(os.path.join(os.path.dirname(output_path), 'X_train.csv'), index=False)
+    pd.DataFrame(X_test_processed).to_csv(os.path.join(os.path.dirname(output_path), 'X_test.csv'), index=False)
     y_train.to_csv(os.path.join(os.path.dirname(output_path), 'y_train.csv'), index=False)
     y_test.to_csv(os.path.join(os.path.dirname(output_path), 'y_test.csv'), index=False)
     
